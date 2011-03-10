@@ -1,0 +1,11 @@
+# Path containing symbols locally
+local_symbol_path=''
+
+# Host to upload symbols to via scp
+symbol_host=''
+# Username to upload as on symbol_host
+symbol_user=''
+# Full path to a private key to use to login to symbol_host
+symbol_privkey=''
+# Path to unpack symbols at on symbol_host
+symbol_path=''

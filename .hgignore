@@ -1,2 +1,5 @@
 ^dump_syms$
 \.pyc$
+~$
+^config\.py$
+last-run
