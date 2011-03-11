@@ -7,7 +7,8 @@ SYSTEM_DIRS = [
     '/System/Library/Frameworks'
     ]
 STORE_DIR = os.path.expanduser("~/Library/Application Support/gathersymbols/")
-SERVER = "cuatro:8080"
+SERVER = "brasstacks.mozilla.com"
+SERVER_PATH = "/symbolserver/"
 
 def should_process(f):
     if f.endswith(".dylib") or os.access(f, os.X_OK):
@@ -26,7 +27,8 @@ def server_has_file(filename, debug_id):
     """
     try:
         conn = httplib.HTTPConnection(SERVER)
-        conn.request("HEAD", urllib.quote("/%s/%s" % (filename, debug_id)))
+        conn.request("HEAD", urllib.quote("%s%s/%s" % (SERVER_PATH,
+                                                       filename, debug_id)))
         res = conn.getresponse()
         return res.status == 200
     except httplib.HTTPException, e:
@@ -42,7 +44,9 @@ def send_file(filename, debug_id, data):
     """
     try:
         conn = httplib.HTTPConnection(SERVER)
-        conn.request("PUT", urllib.quote("/%s/%s" % (filename, debug_id)), data)
+        conn.request("PUT", urllib.quote("%s%s/%s" % (SERVER_PATH,
+                                                      filename, debug_id)),
+                     data)
         res = conn.getresponse()
         return res.status == 200
     except httplib.HTTPException, e:
