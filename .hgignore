@@ -1,5 +1,5 @@
-^dump_syms$
-\.pyc$
+venv
+dump_syms
+symbols\.zip
 ~$
-^config\.py$
-last-run
+\.pyc$
