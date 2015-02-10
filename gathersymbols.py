@@ -39,7 +39,7 @@ def server_has_file(filename):
 
 def process_file(path, arch, verbose, missing_symbols):
     try:
-        stderr = None if verbose else os.devnull
+        stderr = None if verbose else open(os.devnull, 'wb')
         stdout = subprocess.check_output(['./dump_syms', '-a', arch, path],
                                          stderr=stderr)
     except subprocess.CalledProcessError:
@@ -120,7 +120,10 @@ def main():
         zf.writestr('osxsyms-1.0-Darwin-{date}-symbols.txt'.format(date=datetime.datetime.now().strftime('%Y%m%d')),
                     '\n'.join(file_list))
     if file_list:
-        print 'Generated symbols.zip with %d symbols' % len(file_list)
+        if options.verbose:
+            print 'Generated symbols.zip with %d symbols' % len(file_list)
+    else:
+        os.unlink('symbols.zip')
 
 if __name__ == '__main__':
     main()
