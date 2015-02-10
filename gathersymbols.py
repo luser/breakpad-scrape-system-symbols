@@ -6,6 +6,7 @@ import os
 import requests
 import subprocess
 import sys
+import urllib
 import urlparse
 import zipfile
 
@@ -14,7 +15,7 @@ SYSTEM_DIRS = [
     '/usr/lib',
     '/System/Library/Frameworks'
     ]
-SYMBOL_SERVER_URL = 'http://symbols.mozilla.org/'
+SYMBOL_SERVER_URL = 'https://s3-us-west-2.amazonaws.com/org.mozilla.crash-stats.symbols-public/v1/'
 MISSING_SYMBOLS_URL = 'https://crash-analysis.mozilla.com/crash_analysis/{date}/{date}-missing-symbols.txt'
 
 def should_process(f):
@@ -33,7 +34,7 @@ def server_has_file(filename):
     '''
     Send the symbol server a HEAD request to see if it has this symbol file.
     '''
-    r = requests.head(urlparse.urljoin(SYMBOL_SERVER_URL, filename))
+    r = requests.head(urlparse.urljoin(SYMBOL_SERVER_URL, urllib.quote(filename)))
     return r.status_code == 200
 
 
@@ -117,7 +118,7 @@ def main():
                             if filename and contents:
                                 file_list.append(filename)
                                 zf.writestr(filename, contents)
-        zf.writestr('osxsyms-1.0-Darwin-{date}-symbols.txt'.format(date=datetime.datetime.now().strftime('%Y%m%d')),
+        zf.writestr('osxsyms-1.0-Darwin-{date}-symbols.txt'.format(date=datetime.datetime.now().strftime('%Y%m%d%H%M%S')),
                     '\n'.join(file_list))
     if file_list:
         if options.verbose:
