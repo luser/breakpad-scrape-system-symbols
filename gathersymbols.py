@@ -126,12 +126,14 @@ def main():
                         help='Produce verbose output')
     parser.add_argument('--all', action='store_true',
                         help='Gather all system symbols, not just missing ones.')
+    parser.add_argument('files', nargs='*',
+                        help='Specific files from which to gather symbols.')
     args = parser.parse_args()
     # check for the dump_syms binary
     if not os.path.exists('dump_syms') or not os.access('dump_syms', os.X_OK):
         print >>sys.stderr, 'Error: can\'t find dump_syms binary next to this script!'
         return 1
-    if args.all:
+    if args.all or args.files:
         missing_symbols = None
     else:
         # Fetch list of missing symbols
@@ -139,7 +141,7 @@ def main():
     #TODO: io.BytesIO, build in-memory
     file_list = []
     with zipfile.ZipFile('symbols.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-        for fullpath in get_files(SYSTEM_DIRS):
+        for fullpath in args.files if args.files else get_files(SYSTEM_DIRS):
             for arch in get_archs(fullpath):
                 filename, contents = process_file(fullpath, arch, args.verbose, missing_symbols)
                 if filename and contents:
