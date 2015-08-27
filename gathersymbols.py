@@ -14,11 +14,13 @@ import zipfile
 
 
 if sys.platform == 'darwin':
+    is_linux = False
     SYSTEM_DIRS = [
         '/usr/lib',
         '/System/Library/Frameworks'
     ]
 else:
+    is_linux = True
     SYSTEM_DIRS = [
         '/lib',
         '/usr/lib',
@@ -140,10 +142,17 @@ def main():
     else:
         # Fetch list of missing symbols
         missing_symbols = fetch_missing_symbols(args.verbose)
-    #TODO: io.BytesIO, build in-memory
     file_list = []
     with zipfile.ZipFile('symbols.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
         for fullpath in args.files if args.files else get_files(SYSTEM_DIRS):
+            while os.path.islink(fullpath):
+                fullpath = os.path.join(os.path.dirname(fullpath),
+                                        os.readlink(fullpath))
+            if is_linux:
+                # See if there's a -dbg package installed and dump that instead.
+                dbgpath = '/usr/lib/debug' + fullpath
+                if os.path.isfile(dbgpath):
+                    fullpath = dbgpath
             for arch in get_archs(fullpath):
                 filename, contents = process_file(fullpath, arch, args.verbose, missing_symbols)
                 if filename and contents:
