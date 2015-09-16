@@ -54,14 +54,14 @@ def server_has_file(filename):
     return r.status_code == 200
 
 
-def process_file(path, arch, verbose, missing_symbols):
+def process_file(dump_syms, path, arch, verbose, missing_symbols):
     if sys.platform == 'darwin':
         arch_arg = ['-a', arch]
     else:
         arch_arg = []
     try:
         stderr = None if verbose else open(os.devnull, 'wb')
-        stdout = subprocess.check_output(['./dump_syms'] + arch_arg + [path],
+        stdout = subprocess.check_output([dump_syms] + arch_arg + [path],
                                          stderr=stderr)
     except subprocess.CalledProcessError:
         if verbose:
@@ -121,8 +121,7 @@ def get_files(dirs):
         for root, subdirs, files in os.walk(d):
             for f in files:
                 fullpath = os.path.join(root, f)
-                if should_process(fullpath):
-                    yield fullpath
+                yield fullpath
 
 def main():
     parser = argparse.ArgumentParser()
@@ -130,12 +129,13 @@ def main():
                         help='Produce verbose output')
     parser.add_argument('--all', action='store_true',
                         help='Gather all system symbols, not just missing ones.')
+    parser.add_argument('dump_syms', help='Path to dump_syms binary')
     parser.add_argument('files', nargs='*',
                         help='Specific files from which to gather symbols.')
     args = parser.parse_args()
     # check for the dump_syms binary
-    if not os.path.exists('dump_syms') or not os.access('dump_syms', os.X_OK):
-        print >>sys.stderr, 'Error: can\'t find dump_syms binary next to this script!'
+    if not os.path.exists(args.dump_syms) or not os.access(args.dump_syms, os.X_OK):
+        print >>sys.stderr, 'Error: can\'t find dump_syms binary at %s!' % args.dump_syms
         return 1
     if args.all or args.files:
         missing_symbols = None
@@ -145,6 +145,8 @@ def main():
     file_list = []
     with zipfile.ZipFile('symbols.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
         for fullpath in args.files if args.files else get_files(SYSTEM_DIRS):
+            if not should_process(fullpath):
+                continue
             while os.path.islink(fullpath):
                 fullpath = os.path.join(os.path.dirname(fullpath),
                                         os.readlink(fullpath))
@@ -154,7 +156,7 @@ def main():
                 if os.path.isfile(dbgpath):
                     fullpath = dbgpath
             for arch in get_archs(fullpath):
-                filename, contents = process_file(fullpath, arch, args.verbose, missing_symbols)
+                filename, contents = process_file(args.dump_syms, fullpath, arch, args.verbose, missing_symbols)
                 if filename and contents:
                     file_list.append(filename)
                     zf.writestr(filename, contents)
