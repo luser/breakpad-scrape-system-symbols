@@ -3,6 +3,7 @@
 # http://creativecommons.org/publicdomain/zero/1.0/
 
 import argparse
+import concurrent.futures
 import datetime
 import os
 import requests
@@ -50,8 +51,11 @@ def server_has_file(filename):
     '''
     Send the symbol server a HEAD request to see if it has this symbol file.
     '''
-    r = requests.head(urlparse.urljoin(SYMBOL_SERVER_URL, urllib.quote(filename)))
-    return r.status_code == 200
+    try:
+        r = requests.head(urlparse.urljoin(SYMBOL_SERVER_URL, urllib.quote(filename)))
+        return r.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
 
 
 def process_file(dump_syms, path, arch, verbose, missing_symbols):
@@ -116,12 +120,40 @@ def fetch_missing_symbols(verbose):
             return just_platform_symbols(r.content)
     return set()
 
-def get_files(dirs):
-    for d in dirs:
-        for root, subdirs, files in os.walk(d):
-            for f in files:
-                fullpath = os.path.join(root, f)
-                yield fullpath
+def get_files(paths):
+    '''
+    For each entry passed in paths if the path is a file that can
+    be processed, yield it, otherwise if it is a directory yield files
+    under it that can be processed.
+    '''
+    for path in paths:
+        if os.path.isdir(path):
+            for root, subdirs, files in os.walk(d):
+                for f in files:
+                    fullpath = os.path.join(root, f)
+                    if should_process(fullpath):
+                        yield fullpath
+        elif should_process(path):
+            yield path
+
+def process_paths(paths, executor, dump_syms, verbose, missing_symbols):
+    jobs = set()
+    for fullpath in get_files(paths):
+        while os.path.islink(fullpath):
+            fullpath = os.path.join(os.path.dirname(fullpath),
+                                    os.readlink(fullpath))
+        if is_linux:
+            # See if there's a -dbg package installed and dump that instead.
+            dbgpath = '/usr/lib/debug' + fullpath
+            if os.path.isfile(dbgpath):
+                fullpath = dbgpath
+        for arch in get_archs(fullpath):
+            jobs.add(executor.submit(process_file, dump_syms, fullpath, arch, verbose, missing_symbols))
+    for job in concurrent.futures.as_completed(jobs):
+        try:
+            yield job.result()
+        except Exception as e:
+            print >>sys.stderr, 'Error: %s' % str(e)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -143,25 +175,14 @@ def main():
         # Fetch list of missing symbols
         missing_symbols = fetch_missing_symbols(args.verbose)
     file_list = []
+    executor = concurrent.futures.ProcessPoolExecutor()
     with zipfile.ZipFile('symbols.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-        for fullpath in args.files if args.files else get_files(SYSTEM_DIRS):
-            if not should_process(fullpath):
-                continue
-            while os.path.islink(fullpath):
-                fullpath = os.path.join(os.path.dirname(fullpath),
-                                        os.readlink(fullpath))
-            if is_linux:
-                # See if there's a -dbg package installed and dump that instead.
-                dbgpath = '/usr/lib/debug' + fullpath
-                if os.path.isfile(dbgpath):
-                    fullpath = dbgpath
-            for arch in get_archs(fullpath):
-                filename, contents = process_file(args.dump_syms, fullpath, arch, args.verbose, missing_symbols)
-                if filename and contents:
-                    file_list.append(filename)
-                    zf.writestr(filename, contents)
+        for filename, contents in process_paths(args.files if args.files else SYSTEM_DIRS, executor, args.dump_syms, args.verbose, missing_symbols):
+            if filename and contents:
+                file_list.append(filename)
+                zf.writestr(filename, contents)
         zf.writestr('ossyms-1.0-{platform}-{date}-symbols.txt'.format(platform=sys.platform.title(), date=datetime.datetime.now().strftime('%Y%m%d%H%M%S')),
-                    '\n'.join(file_list))
+                '\n'.join(file_list))
     if file_list:
         if args.verbose:
             print 'Generated symbols.zip with %d symbols' % len(file_list)
