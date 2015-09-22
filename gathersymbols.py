@@ -128,7 +128,7 @@ def get_files(paths):
     '''
     for path in paths:
         if os.path.isdir(path):
-            for root, subdirs, files in os.walk(d):
+            for root, subdirs, files in os.walk(path):
                 for f in files:
                     fullpath = os.path.join(root, f)
                     if should_process(fullpath):
@@ -176,7 +176,8 @@ def main():
         missing_symbols = fetch_missing_symbols(args.verbose)
     file_list = []
     executor = concurrent.futures.ProcessPoolExecutor()
-    with zipfile.ZipFile('symbols.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+    zip_path = os.path.abspath('symbols.zip')
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for filename, contents in process_paths(args.files if args.files else SYSTEM_DIRS, executor, args.dump_syms, args.verbose, missing_symbols):
             if filename and contents:
                 file_list.append(filename)
@@ -185,7 +186,7 @@ def main():
                 '\n'.join(file_list))
     if file_list:
         if args.verbose:
-            print 'Generated symbols.zip with %d symbols' % len(file_list)
+            print 'Generated %s with %d symbols' % (zip_path, len(file_list))
     else:
         os.unlink('symbols.zip')
 
