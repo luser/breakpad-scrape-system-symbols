@@ -174,13 +174,13 @@ def main():
     else:
         # Fetch list of missing symbols
         missing_symbols = fetch_missing_symbols(args.verbose)
-    file_list = []
+    file_list = set()
     executor = concurrent.futures.ProcessPoolExecutor()
     zip_path = os.path.abspath('symbols.zip')
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for filename, contents in process_paths(args.files if args.files else SYSTEM_DIRS, executor, args.dump_syms, args.verbose, missing_symbols):
-            if filename and contents:
-                file_list.append(filename)
+            if filename and contents and filename not in file_list:
+                file_list.add(filename)
                 zf.writestr(filename, contents)
         zf.writestr('ossyms-1.0-{platform}-{date}-symbols.txt'.format(platform=sys.platform.title(), date=datetime.datetime.now().strftime('%Y%m%d%H%M%S')),
                 '\n'.join(file_list))
