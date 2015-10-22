@@ -4,4 +4,4 @@
 # Xcode has pulled from devices connected to this computer.
 set -e
 
-venv/bin/python gathersymbols.py -v ./dump_syms ~/Library/Developer/Xcode/iOS\ DeviceSupport/
+venv/bin/gathersymbols -v ./dump_syms ~/Library/Developer/Xcode/iOS\ DeviceSupport/

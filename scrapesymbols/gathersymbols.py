@@ -15,13 +15,11 @@ import zipfile
 
 
 if sys.platform == 'darwin':
-    is_linux = False
     SYSTEM_DIRS = [
         '/usr/lib',
         '/System/Library/Frameworks'
     ]
 else:
-    is_linux = True
     SYSTEM_DIRS = [
         '/lib',
         '/usr/lib',
@@ -29,21 +27,20 @@ else:
 SYMBOL_SERVER_URL = 'https://s3-us-west-2.amazonaws.com/org.mozilla.crash-stats.symbols-public/v1/'
 MISSING_SYMBOLS_URL = 'https://crash-analysis.mozilla.com/crash_analysis/{date}/{date}-missing-symbols.txt'
 
-def should_process(f):
+def should_process(f, platform=sys.platform):
     '''Determine if a file is a platform binary'''
-    if sys.platform == 'darwin':
-        if f.endswith('.dylib') or os.access(f, os.X_OK):
-            return subprocess.check_output(['file', '-Lb', f]).startswith('Mach-O')
-    elif f.find('.so') != -1 or os.access(f, os.X_OK):
-            return subprocess.check_output(['file', '-Lb', f]).startswith('ELF')
+    if platform == 'darwin':
+        return subprocess.check_output(['file', '-Lb', f]).startswith('Mach-O')
+    else:
+        return subprocess.check_output(['file', '-Lb', f]).startswith('ELF')
     return False
 
-def get_archs(filename):
+def get_archs(filename, platform=sys.platform):
     '''
     Find the list of architectures present in a Mach-O file, or a single-element
     list on non-OS X.
     '''
-    if sys.platform == 'darwin':
+    if platform == 'darwin':
         return subprocess.check_output(['lipo', '-info', filename]).split(':')[2].strip().split()
     return [None]
 
@@ -120,7 +117,7 @@ def fetch_missing_symbols(verbose):
             return just_platform_symbols(r.content)
     return set()
 
-def get_files(paths):
+def get_files(paths, platform=sys.platform):
     '''
     For each entry passed in paths if the path is a file that can
     be processed, yield it, otherwise if it is a directory yield files
@@ -131,23 +128,25 @@ def get_files(paths):
             for root, subdirs, files in os.walk(path):
                 for f in files:
                     fullpath = os.path.join(root, f)
-                    if should_process(fullpath):
+                    if should_process(fullpath, platform=platform):
                         yield fullpath
-        elif should_process(path):
+        elif should_process(path, platform=platform):
             yield path
 
-def process_paths(paths, executor, dump_syms, verbose, missing_symbols):
+def process_paths(paths, executor, dump_syms, verbose,
+                  missing_symbols=None,
+                  platform=sys.platform):
     jobs = set()
-    for fullpath in get_files(paths):
+    for fullpath in get_files(paths, platform=platform):
         while os.path.islink(fullpath):
             fullpath = os.path.join(os.path.dirname(fullpath),
                                     os.readlink(fullpath))
-        if is_linux:
+        if platform == 'linux':
             # See if there's a -dbg package installed and dump that instead.
             dbgpath = '/usr/lib/debug' + fullpath
             if os.path.isfile(dbgpath):
                 fullpath = dbgpath
-        for arch in get_archs(fullpath):
+        for arch in get_archs(fullpath, platform=platform):
             jobs.add(executor.submit(process_file, dump_syms, fullpath, arch, verbose, missing_symbols))
     for job in concurrent.futures.as_completed(jobs):
         try:

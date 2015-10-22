@@ -1,3 +1,7 @@
 *~
 venv/
 dump_syms
+*.pyc
+build/
+dist/
+*.egg-info
