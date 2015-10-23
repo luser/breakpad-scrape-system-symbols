@@ -5,3 +5,6 @@ gathersymbols.py attempts to find system libraries and run Breakpad's dump_syms 
 uploadsymbols.py takes a symbols.zip and a Socorro authentication token and uploads the symbols.zip using Socorro's symbol upload API.
 
 Both scripts require the Python `requests` library to be installed, gathersymbols.py also requires the `futures` library.
+
+Any copyright is dedicated to the Public Domain.
+http://creativecommons.org/publicdomain/zero/1.0/

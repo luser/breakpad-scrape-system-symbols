@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+#
+# Any copyright is dedicated to the Public Domain.
+# http://creativecommons.org/publicdomain/zero/1.0/
 
 from setuptools import setup, find_packages
 
