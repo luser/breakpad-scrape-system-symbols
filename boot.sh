@@ -1,5 +1,5 @@
-#!/bin/sh
-# Run this script with `curl -L https://github.com/luser/breakpad-scrape-system-symbols/raw/master/boot.sh | sh` to scrape symbols from an Ubuntu install.
+#!/bin/bash
+# Run this script with `curl -L https://github.com/luser/breakpad-scrape-system-symbols/raw/master/boot.sh | bash` to scrape symbols from an Ubuntu install.
 
 set -v -e
 
