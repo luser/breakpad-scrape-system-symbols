@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run this script with `curl https://github.com/luser/breakpad-scrape-system-symbols/raw/master/boot.sh | sh` to scrape symbols from an Ubuntu install.
+# Run this script with `curl -L https://github.com/luser/breakpad-scrape-system-symbols/raw/master/boot.sh | sh` to scrape symbols from an Ubuntu install.
 
 set -v -e
 
@@ -11,7 +11,7 @@ xvfb-run ./firefox/firefox &
 sleep 5
 
 pid=$(pidof firefox)
-if test -z $pid; then;
+if test -z $pid; then
   echo "Firefox not running"
   exit 1
 fi
