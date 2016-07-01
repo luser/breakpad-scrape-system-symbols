@@ -15,16 +15,18 @@ if test -z $pid; then
   echo "Firefox not running"
   exit 1
 fi
+dir=`pwd`/firefox
 
 # Get necessary scripts and tools.
 cd
 git clone https://github.com/luser/breakpad-scrape-system-symbols.git
 cd breakpad-scrape-system-symbols
 ./setup.sh
+set +v
 . ./venv/bin/activate
+set -v
 
 # Get the list of libraries loaded in the Firefox process.
-dir=$(dirname $(readlink /proc/${pid}/exe))
 grep r-x /proc/$pid/maps | awk '{ print $6 }' | sort -u | grep ^/ | grep -v "^${dir}" > /tmp/libs.list
 
 kill $pid
