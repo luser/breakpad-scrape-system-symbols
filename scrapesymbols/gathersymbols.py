@@ -164,8 +164,9 @@ def main():
     parser.add_argument('files', nargs='*',
                         help='Specific files from which to gather symbols.')
     args = parser.parse_args()
+    args.dump_syms = os.path.abspath(args.dump_syms)
     # check for the dump_syms binary
-    if not os.path.exists(args.dump_syms) or not os.access(args.dump_syms, os.X_OK):
+    if not os.path.isabs(args.dump_syms) or not os.path.exists(args.dump_syms) or not os.access(args.dump_syms, os.X_OK):
         print >>sys.stderr, 'Error: can\'t find dump_syms binary at %s!' % args.dump_syms
         return 1
     if args.all or args.files:
