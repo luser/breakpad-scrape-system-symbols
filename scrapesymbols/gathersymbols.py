@@ -17,7 +17,8 @@ import zipfile
 if sys.platform == 'darwin':
     SYSTEM_DIRS = [
         '/usr/lib',
-        '/System/Library/Frameworks'
+        '/System/Library/Frameworks',
+        '/System/Library/PrivateFrameworks'
     ]
 else:
     SYSTEM_DIRS = [
