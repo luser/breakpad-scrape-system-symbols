@@ -25,7 +25,7 @@ else:
         '/lib',
         '/usr/lib',
     ]
-SYMBOL_SERVER_URL = 'https://s3-us-west-2.amazonaws.com/org.mozilla.crash-stats.symbols-public/v1/'
+SYMBOL_SERVER_URL = 'https://symbols.mozilla.org/'
 MISSING_SYMBOLS_URL = 'https://crash-analysis.mozilla.com/crash_analysis/{date}/{date}-missing-symbols.txt'
 
 def should_process(f, platform=sys.platform):
